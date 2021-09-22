@@ -18,7 +18,7 @@ var data = {
   'totals': [],
   'perc': [],
 };
-var store = {};
+// TODO: possible re-add feature that caches data using `store` variable
 
 // Create popup class for map tooltips
 var popup = new mapboxgl.Popup({
@@ -38,21 +38,15 @@ function showData(data, dim) {
 function getData(dim) {
   spinner.style.display = 'flex';
   let dataurl = config.url[0] + dim + config.url[1];
-  if (!store[dim]) {
-    fetch(dataurl)
-      .then((response) => {
-        return response.text();
-      })
-      .then((tsvdata) => {
-        let newdata = tsv2json(tsvdata);
-        data = newdata;
-        store[dim] = newdata;
-        showData(data, dim);
-      });
-  } else {
-    data = store[dim];
-    showData(data, dim);
-  }
+  fetch(dataurl)
+    .then((response) => {
+      return response.text();
+    })
+    .then((tsvdata) => {
+      let newdata = tsv2json(tsvdata);
+      data = newdata;
+      showData(data, dim);
+    });
 }
 
 // Function to get color for a value based on breaks
