@@ -17,13 +17,13 @@ export const colors = [
   'rgb(247, 93, 43)'
 ];
 
-export const options = {
-  'Ethnicity': 'ethnicity',
-  'Social grade': 'class',
-  'Hours worked': 'hours',
-  'Housing type': 'home',
-  'Housing tenure': 'tenure'
-};
+export const options = [
+  {niceName: 'Ethnicity', varName: 'ethnicity'},
+  {niceName: 'Social grade', varName: 'class'},
+  {niceName: 'Hours worked', varName: 'hours'},
+  {niceName: 'Housing type', varName: 'home'},
+  {niceName: 'Housing tenure', varName: 'tenure'}
+];
 
 export const unitise = {
   'ethnicity': 'people',

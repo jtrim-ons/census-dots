@@ -8,7 +8,8 @@ const selector = document.getElementById('selector');
 const legend = document.getElementById('legend');
 const units = document.getElementById('units');
 const count = document.getElementById('count');
-const form = document.getElementById('form');
+// TODO: un-comment postcode search
+//const form = document.getElementById('form');
 const postcode = document.getElementById('postcode');
 
 // Set null variables
@@ -43,15 +44,14 @@ function getData(dim) {
       return response.text();
     })
     .then((tsvdata) => {
-      let newdata = tsv2json(tsvdata);
-      data = newdata;
+      data = tsv2json(tsvdata);
       showData(data, dim);
     });
 }
 
 // Function to get color for a value based on breaks
 function getColor(value, breaks) {
-  for (let i in breaks) {
+  for (let i=0; i<breaks.length; i++) {
     if (value < breaks[i]) {
       if (document.getElementById('legend' + i).checked) {
         return [config.colors[i], i];
@@ -175,15 +175,15 @@ function makeLayers() {
 
 // Function to set properties of map features
 function setProperties(dots) {
-  for (let dot in dots) {
-    let code = dots[dot].substring(0, 9);
-    let num = +dots[dot].substring(9, 11);
+  for (let dot of dots) {
+    let code = dot.substring(0, 9);
+    let num = +dot.substring(9, 11);
     let color = getColor(num, data.values[code].breaks);
 
     map.setFeatureState({
       source: 'dots',
       sourceLayer: 'dots',
-      id: dots[dot]
+      id: dot
     }, {
       color: color[0],
       group: color[1]
@@ -199,8 +199,8 @@ function updateDots() {
   if (data.totals[0]) {
     let features = map.querySourceFeatures('dots', { 'sourceLayer': 'dots' });
     let newdots = [];
-    for (let feature in features) {
-      let id = features[feature].properties.id;
+    for (let feature of features) {
+      let id = feature.properties.id;
       let state = map.getFeatureState({
         source: 'dots',
         sourceLayer: 'dots',
@@ -214,51 +214,38 @@ function updateDots() {
   }
 }
 
-// Function to update legend
 function updateLegend() {
-
   // Initialise counts for each group
-  let counts = [];
-  for (let i in data.headers) {
-    counts.push(0);
-  }
+  let counts = new Array(data.headers.length).fill(0);
 
   // Add add group counts for each visible feature
   let features = map.queryRenderedFeatures({ layers: ['centroids'] });
-  let ids = [];
-  for (let feature in features) {
-    ids.push(features[feature].id);
-  }
+  let ids = features.map(feature => feature.id);
   // ids = ids.filter((v, i, a) => a.indexOf(v) === i);
-  for (let i in ids) {
-    let values = data.values[ids[i]].counts;
-    for (let val in values) {
-      counts[val] += values[val];
+  for (let id of ids) {
+    let values = data.values[id].counts;
+    for (let i=0; i<values.length; i++) {
+      counts[i] += values[i];
     }
   }
 
   // Turn counts into percentages + render to DOM
   let sum = counts.reduce((a, b) => a + b);
   let perc = counts.map((num) => Math.round((num / sum) * 100));
-  for (let i in perc) {
+  for (let i=0; i<perc.length; i++) {
     document.getElementById('perc' + i).innerHTML = perc[i] + '%';
   }
 }
 
 // Function to generate options + set event listener
 function genOptions(options) {
-  let keys = Object.keys(options);
-  let values = Object.values(options);
   let html = ""
-  for (let i in keys) {
+  options.forEach(function(d, i) {
     let selected = i == 0 ? ' selected="selected"' : "";
-    let option = '<option value="' + values[i] + '"' + selected + '>' + keys[i] + '</option>';
-    html += option;
-  }
+    html += '<option value="' + d.varName + '"' + selected + '>' + d.niceName + '</option>';
+  });
   selector.innerHTML = html;
-  selector.onchange = () => {
-    getData(selector.value);
-  }
+  selector.onchange = () => { getData(selector.value); }
 }
 
 // Function to clear map dots styling
@@ -272,11 +259,11 @@ function clearDots() {
 // Function to add legend scale
 function genLegend(data) {
   let html = '';
-  for (let i in data.headers) {
+  for (let i=0; i<data.headers.length; i++) {
     html += '<p class="mb-1"><span class="dot mr-1" style="background-color:' + config.colors[i] + ';"></span><input type="checkbox" id="legend' + i + '" checked /> <small>' + data.headers[i] + ' <span id="perc' + i + '"></span> <span class="text-secondary">(' + data.perc[i] + '%)</span></small></p>';
   }
   legend.innerHTML = html;
-  for (let i in data.headers) {
+  for (let i=0; i<data.headers.length; i++) {
     let element = document.getElementById('legend' + i);
     element.onclick = () => {
       clearDots();
@@ -289,9 +276,8 @@ function genLegend(data) {
 function loadCentroids() {
   fetch(config.url[0] + 'oalatlng' + config.url[1])
   .then(response => response.text())
-  .then(rawdata => d3.csvParse(rawdata))
-  .then(data => json2geo(data))
-  .then(geojson => {
+  .then(rawdata => {
+    let geojson = json2geo(d3.csvParse(rawdata));
     console.log(geojson);
     map.addSource('centroids', {
       "type": "geojson",
@@ -317,31 +303,31 @@ function updateUnits() {
   count.innerHTML = unit;
 }
 
-// Function to get a postcode lng/lat from COGS
-function gotoPostcode(e) {
-  let code = postcode.value.replace(new RegExp(' ', 'g'), '').toUpperCase();
-  let query = `SELECT ?lat ?lng
-  WHERE {
-    <http://statistics.data.gov.uk/id/postcode/unit/${code}> <http://www.w3.org/2003/01/geo/wgs84_pos#lat> ?lat ;
-    <http://www.w3.org/2003/01/geo/wgs84_pos#long> ?lng .
-  }
-  LIMIT 1`;
-  fetch(config.api + encodeURIComponent(query))
-    .then(response => response.text())
-    .then(rawdata => d3.csvParse(rawdata))
-    .then(data => {
-      if (data[0]) {
-        map.flyTo({
-          center: [data[0].lng, data[0].lat],
-          zoom: 14
-        });
-      } else {
-        postcode.value = null;
-        postcode.placeholder = "Not found. Type a postcode...";
-      }
-    });
-  e.preventDefault();
-}
+//// Function to get a postcode lng/lat from COGS
+//function gotoPostcode(e) {
+//  let code = postcode.value.replace(new RegExp(' ', 'g'), '').toUpperCase();
+//  let query = `SELECT ?lat ?lng
+//  WHERE {
+//    <http://statistics.data.gov.uk/id/postcode/unit/${code}> <http://www.w3.org/2003/01/geo/wgs84_pos#lat> ?lat ;
+//    <http://www.w3.org/2003/01/geo/wgs84_pos#long> ?lng .
+//  }
+//  LIMIT 1`;
+//  fetch(config.api + encodeURIComponent(query))
+//    .then(response => response.text())
+//    .then(rawdata => d3.csvParse(rawdata))
+//    .then(data => {
+//      if (data[0]) {
+//        map.flyTo({
+//          center: [data[0].lng, data[0].lat],
+//          zoom: 14
+//        });
+//      } else {
+//        postcode.value = null;
+//        postcode.placeholder = "Not found. Type a postcode...";
+//      }
+//    });
+//  e.preventDefault();
+//}
 
 // INITIALISE MAP
 mapboxgl.accessToken = config.mapboxgl_access_token;
@@ -363,5 +349,5 @@ map.on('sourcedata', function (e) {
   }
 });
 
-// Set event listener on postcode search
-form.addEventListener('submit', gotoPostcode);
+//// Set event listener on postcode search
+//form.addEventListener('submit', gotoPostcode);

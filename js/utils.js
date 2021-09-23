@@ -11,9 +11,7 @@ export function tsv2json(string) {
   let headers = array[0].split(',');
   headers.shift();
   json.headers = headers;
-  for (let i in headers) {
-    json.totals.push(0);
-  }
+  json.totals = new Array(headers.length).fill(0);
   for (var i = 1; i < array.length; i++) {
     let row = array[i].split(',');
     if (row[1]) {
@@ -33,13 +31,9 @@ export function tsv2json(string) {
       }
     }
   }
-  let sum = 0;
+  let sum = json.totals.reduce((a, b) => a + b);
   for (let tot in json.totals) {
-    sum += json.totals[tot];
-  }
-  for (let tot in json.totals) {
-    let perc = Math.round(100 * (json.totals[tot] / sum));
-    json.perc.push(perc);
+    json.perc.push(Math.round(100 * (json.totals[tot] / sum)));
   }
   return json;
 }
@@ -50,15 +44,15 @@ export function json2geo(json) {
     "type": "FeatureCollection",
     "features": []
   };
-  for (let i in json) {
+  for (let item of json) {
     let feature = {
       "type": "Feature",
       "geometry": {
         "type": "Point",
-        "coordinates": [+json[i].lng, +json[i].lat]
+        "coordinates": [+item.lng, +item.lat]
       },
       "properties": {
-        "code": json[i].code
+        "code": item.code
       }
     };
     geojson.features.push(feature);
