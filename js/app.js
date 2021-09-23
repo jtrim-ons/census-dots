@@ -19,7 +19,7 @@ var data = {
   'totals': [],
   'perc': [],
 };
-// TODO: possible re-add feature that caches data using `store` variable
+// TODO: possibly re-add feature that caches data using `store` variable
 
 // Create popup class for map tooltips
 var popup = new mapboxgl.Popup({
@@ -175,9 +175,10 @@ function makeLayers() {
 
 // Function to set properties of map features
 function setProperties(dots) {
+  console.log(data.values.E00000001);
   for (let dot of dots) {
     let code = dot.substring(0, 9);
-    let num = +dot.substring(9, 11);
+    let num = +dot.substring(9);
     let color = getColor(num, data.values[code].breaks);
 
     map.setFeatureState({
