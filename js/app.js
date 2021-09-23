@@ -52,15 +52,17 @@ function getData(dim) {
 // Function to get color for a value based on breaks
 function getColor(value, breaks) {
   for (let i=0; i<breaks.length; i++) {
-    if (value < breaks[i]) {
+    if (value <= breaks[i]) {
       if (document.getElementById('legend' + i).checked) {
-        return [config.colors[i], i];
+        return config.colors[i];
       } else {
-        return [null, i];
+        return null;
       }
     }
   }
-  return [null, null];
+  console.log(value, breaks);
+  console.warn("Reached a unexpected place in getColor()");
+  return null;
 }
 
 // Function to add layers to map
@@ -175,7 +177,8 @@ function makeLayers() {
 
 // Function to set properties of map features
 function setProperties(dots) {
-  console.log(data.values.E00000001);
+  console.log(data.values.E00115816);
+  let startTime = performance.now();
   for (let dot of dots) {
     let code = dot.substring(0, 9);
     let num = +dot.substring(9);
@@ -185,11 +188,10 @@ function setProperties(dots) {
       source: 'dots',
       sourceLayer: 'dots',
       id: dot
-    }, {
-      color: color[0],
-      group: color[1]
-    });
+    }, { color });
   }
+  let endTime = performance.now();
+  console.log(endTime - startTime, "ms elapsed");
   if (map.isSourceLoaded('centroids')) {
     updateLegend();
   }
