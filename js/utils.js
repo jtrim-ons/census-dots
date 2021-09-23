@@ -20,9 +20,9 @@ export function tsv2json(string) {
       let breaks = [];
       for (let j = 1; j < row.length; j++) {
         let val = +row[j];
-        tot += Math.round(val / 10);
+        tot += val;
         counts.push(val);
-        breaks.push(tot);
+        breaks.push(Math.round(tot / 10));  // TODO: maybe improve breaks
         json.totals[j - 1] += val;
       }
       json.values[row[0]] = {
